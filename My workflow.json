@@ -1,0 +1,297 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2b9626ce-92ef-491c-9b33-291ac4a9dc2d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.browser-use.com/api/v3/sessions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Browser-Use-API-Key",
+              "value": "bu_x2aEvAGxrPj0n9ivaSZ0sWqOvgxuezZXnWTQHaYTaDw"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"task\": \"Go to trendyol.com. Find and click the login button (usually top right). Enter email 'caagdas@hotmail.com' and password 'Cagdasdeneme123!' and login. After successful login, find the search bar and search for 'laptop'. Wait for results to load. From the search results page, extract the FIRST 5 products. For each product get: product name, price (in TL), and rating score. Return as JSON array with fields: name, price, rating.\",\n  \"model\": \"bu-mini\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "689b3be9-1a3b-48d6-8c5e-18749c0ff57b",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.browser-use.com/api/v3/sessions/{{ $json.id }}\n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Browser-Use-API-Key",
+              "value": "bu_x2aEvAGxrPj0n9ivaSZ0sWqOvgxuezZXnWTQHaYTaDw"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "d2962559-35e0-44af-95db-fbfbc0d2cf88",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "486ce783-5f9f-464b-a134-76e35e8136b1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "stopped",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "e9c4fc46-dacc-46c4-b072-5b490efa120c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.output || '';\n\nconst lines = output.match(/\\d+\\.\\s+[^\\n]+TL[^\\n]*/g) || [];\n\nconst products = lines.slice(0, 5).map(line => {\n  const priceMatch = line.match(/([\\d,\\.]+)\\s*TL/);\n  const price = priceMatch ? priceMatch[1] + ' TL' : '';\n  \n  const ratingMatch = line.match(/Rating:\\s*([\\d\\.]+)/i);\n  const rating = ratingMatch ? ratingMatch[1] : '';\n  \n  let name = line\n    .replace(/^\\d+\\.\\s+/, '')\n    .replace(/\\+\\+/g, '')\n    .replace(/\\*\\*/g, '')\n    .replace(/([\\d,\\.]+)\\s*TL/g, '')\n    .replace(/\\(Rating:[^)]*\\)/gi, '')\n    .replace(/:\\s*$/, '')\n    .trim();\n  \n  return {\n    json: {\n      name: name,\n      price: price,\n      rating: rating,\n      date: new Date().toLocaleDateString('tr-TR')\n    }\n  };\n});\n\nreturn products.length > 0 ? products : [{ \n  json: { name: output.substring(0, 200), price: '', rating: '', date: new Date().toLocaleDateString('tr-TR') }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "26c4856d-d928-466e-b7d9-ca29fb339591",
+      "name": "Veriyi Düzenleme"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1tG7dGX0uBNXV17AhVZ_1N1wV46jKLjAo_ie581VH2kE",
+          "mode": "list",
+          "cachedResultName": "Başlıksız e-tablo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tG7dGX0uBNXV17AhVZ_1N1wV46jKLjAo_ie581VH2kE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "trendyol",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1tG7dGX0uBNXV17AhVZ_1N1wV46jKLjAo_ie581VH2kE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Adı": "={{ $json.name }}",
+            "Puan": "={{ $json.rating }}",
+            "Fiyat": "={{ $json.price }}",
+            "Tarih": "={{ $json.date }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Adı",
+              "displayName": "Adı",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Puan",
+              "displayName": "Puan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fiyat",
+              "displayName": "Fiyat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tarih",
+              "displayName": "Tarih",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1040,
+        -96
+      ],
+      "id": "7c35ec8e-235d-4d5d-8b16-6e237853d65b",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "WhD99eWRXkldMUVF",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        96
+      ],
+      "id": "69ec868e-10bc-401d-81a6-f88ae9f29f51",
+      "name": "Wait",
+      "webhookId": "528b6d18-22be-496a-a3c9-1894862d11e1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Veriyi Düzenleme",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veriyi Düzenleme": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ad97e686-5ad9-433b-9c16-4a473b94271b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9c6c2fb6b5cc338e901c21e9a71c08e54cb1ef45cc24ef3697c597093611efb5"
+  },
+  "id": "HcL9fFELDk5Sixvd",
+  "tags": []
+}
